@@ -4,8 +4,8 @@ const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.use(cors());
 
+app.use(cors());
 
 const SYMBOL = "EURUSDT";
 const INTERVAL = "1m";
@@ -18,7 +18,7 @@ let lastSignal = null;
 function analyzeCandle(open, close, high, low) {
     const body = Math.abs(close - open);
     const totalRange = high - low;
-    const direction = close > open ? "BUY 🟩" : close < open ? "SELL 🟥" : "FLAT ⚪️";
+    const direction = close > open ? "BUY" : close < open ? "SELL" : "FLAT";
     const bodyPercent = (body / totalRange) * 100;
     return { direction, bodyPercent, body };
 }
@@ -47,19 +47,19 @@ async function getLastCandle() {
             tradeInfo = {
                 entryTime: time,
                 entryPrice: close,
-                direction: direction.includes("BUY") ? "BUY" : "SELL",
+                direction
             };
 
             lastSignal = {
                 type: "OPEN",
                 time,
                 price: close,
-                direction: tradeInfo.direction,
+                direction,
                 bodyPercent,
                 duration
             };
 
-            console.log(`🟢 Tranzacție DESCHISĂ: ${tradeInfo.direction} la ${tradeInfo.entryPrice} (${tradeInfo.entryTime})`);
+            console.log(`Tranzacție DESCHISĂ: ${direction} la ${close} (${time})`);
         } else if (tradeOpen) {
             tradeOpen = false;
 
@@ -77,9 +77,9 @@ async function getLastCandle() {
                 direction: tradeInfo.direction
             };
 
-            console.log(`🔚 Tranzacție ÎNCHISĂ la ${exitPrice} (${exitTime})`);
-            console.log(`📌 Direcție: ${tradeInfo.direction}`);
-            console.log(`📊 Rezultat: ${result.toFixed(5)}\n`);
+            console.log(`Tranzacție ÎNCHISĂ la ${exitPrice} (${exitTime})`);
+            console.log(`Direcție: ${tradeInfo.direction}`);
+            console.log(`Rezultat: ${result.toFixed(5)}\n`);
 
             tradeInfo = null;
         }
@@ -87,19 +87,19 @@ async function getLastCandle() {
         lastTimestamp = timestamp;
 
     } catch (err) {
-        console.error("❌ Eroare API Binance:", err.message);
+        console.error("Eroare API Binance:", err.message);
     }
 }
 
-// Rulează analiza la fiecare secundă
 setInterval(getLastCandle, 1000);
 getLastCandle();
 
-// API Endpoint
+// ✅ Health check endpoint
 app.get("/", (req, res) => {
-    res.send("✅ API Binance Signal Bot Running");
+    res.json({ status: "API Binance Signal Bot Running" });
 });
 
+// ✅ Returnează ultimul semnal
 app.get("/signal", (req, res) => {
     if (lastSignal) {
         res.json(lastSignal);
@@ -109,5 +109,5 @@ app.get("/signal", (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Serverul rulează pe http://localhost:${PORT}`);
+    console.log(`Serverul rulează pe http://localhost:${PORT}`);
 });

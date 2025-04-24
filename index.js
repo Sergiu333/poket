@@ -1,22 +1,18 @@
-import axios from "axios";
+const express = require('express');
+const axios = require('axios');
+const cors = require("cors");
+
+const app = express();
+const port = process.env.PORT || 3000;
+app.use(cors());
 
 let lastSignal = null; // Variabila pentru a stoca ultimul semnal detectat
-
 const SYMBOL = "EURUSDT";
 const INTERVAL = "1m";
 let lastTimestamp = null;
 
-export default async function handler(req, res) {
-  // Setăm header-ul CORS
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Permitem accesul de la orice domeniu
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    // Răspuns pentru cereri de tip OPTIONS (pre-flight CORS)
-    return res.status(200).end();
-  }
-
+// Funcția pentru a obține semnalul
+async function getSignal() {
   const url = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=${INTERVAL}&limit=2`;
 
   try {
@@ -24,7 +20,7 @@ export default async function handler(req, res) {
     const candles = response.data;
 
     if (candles.length < 2) {
-      return res.status(200).json({ message: "Prea puține date." });
+      return { message: "Prea puține date." };
     }
 
     const last = candles[candles.length - 2];
@@ -43,7 +39,6 @@ export default async function handler(req, res) {
 
     lastTimestamp = timestamp;
 
-    // Verificăm dacă semnalul îndeplinește condițiile
     if (duration && duration > 2.5 && bodyPercent > 80) {
       const emojis = "✅".repeat(20);
       const signal = `
@@ -57,19 +52,30 @@ ${emojis}
 ${emojis}
       `.trim();
 
-      // Salvăm semnalul
       lastSignal = signal;
       console.log("🚀 Semnal nou:", signal);
     }
 
-    // Dacă nu s-a găsit un semnal, trimitem răspuns că nu s-a detectat
-    if (lastSignal) {
-      res.status(200).json({ signal: lastSignal });
-    } else {
-      res.status(200).json({ message: "Nu s-a detectat niciun semnal." });
-    }
+    return lastSignal ? { signal: lastSignal } : { message: "Nu s-a detectat niciun semnal." };
+
   } catch (err) {
     console.error("❌ Eroare API:", err.message);
-    res.status(500).json({ error: "Eroare Binance API" });
+    return { error: "Eroare Binance API" };
   }
 }
+
+// Definirea rutei /signal
+app.get('/signal', async (req, res) => {
+  const result = await getSignal();
+  
+  if (result.error) {
+    return res.status(500).json(result);
+  }
+
+  return res.status(200).json(result);
+});
+
+// Pornirea serverului
+app.listen(port, () => {
+  console.log(`Serverul rulează pe portul ${port}`);
+});

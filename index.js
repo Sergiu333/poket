@@ -1,11 +1,15 @@
+const express = require("express");
 const axios = require("axios");
-const cors = require("cors");
+const cors = require("cors"); // Adăugăm pachetul CORS
+const app = express();
+const PORT = 3000;
+
+app.use(cors()); // Activăm CORS pentru toate originile
 
 const SYMBOL = "EURUSDT";
 const INTERVAL = "1m";
 let lastTimestamp = null;
 let lastSignal = null;
-app.use(cors());
 
 function analyzeCandle(open, close, high, low) {
     const body = Math.abs(close - open);
@@ -66,13 +70,16 @@ ${emojis}
 setInterval(getLastCandle, 1000);
 getLastCandle();
 
-module.exports = async (req, res) => {
-    // Permite CORS pentru a permite accesul din browser
-    res.setHeader("Access-Control-Allow-Origin", "*");
-
+// Endpoint API
+app.get("/signal", (req, res) => {
     if (lastSignal) {
         res.send(`<pre>${lastSignal}</pre>`);
     } else {
         res.send("Niciun semnal detectat încă.");
     }
-};
+});
+
+// Pornim serverul
+app.listen(PORT, () => {
+    console.log(`🚀 Server API pornit pe http://localhost:${PORT}`);
+});

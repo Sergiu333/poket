@@ -13,7 +13,8 @@ let lastTimestamp = null;
 
 // Funcția pentru a obține semnalul
 async function getSignal() {
-  const url = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=${INTERVAL}&limit=2`;
+const url = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=${INTERVAL}&limit=2`;
+
 
   try {
     const response = await axios.get(url);

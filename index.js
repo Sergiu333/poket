@@ -1,9 +1,5 @@
-const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
-const app = express();
-const PORT = 3000;
-app.use(cors());
 
 const SYMBOL = "EURUSDT";
 const INTERVAL = "1m";
@@ -53,11 +49,8 @@ ${emojis}
 ${emojis}
                 `.trim();
 
-                // Previne trimiterea semnalelor duplicate
-                if (lastSignal !== signal) {
-                    lastSignal = signal;
-                    console.log("🚀 Semnal nou:", signal);
-                }
+                lastSignal = signal;
+                console.log(signal);
             }
         }
 
@@ -68,20 +61,17 @@ ${emojis}
     }
 }
 
-// Verifică semnalele la fiecare 1 secundă (pentru detectarea rapidă)
+// Pornim verificarea la fiecare secundă
 setInterval(getLastCandle, 1000);
-getLastCandle();  // Verifică și inițial la început
+getLastCandle();
 
-// Endpoint API pentru semnale
-app.get("/signal", (req, res) => {
+module.exports = async (req, res) => {
+    // Permite CORS pentru a permite accesul din browser
+    res.setHeader("Access-Control-Allow-Origin", "*");
+
     if (lastSignal) {
         res.send(`<pre>${lastSignal}</pre>`);
     } else {
         res.send("Niciun semnal detectat încă.");
     }
-});
-
-// Pornim serverul pe portul specificat
-app.listen(PORT, () => {
-    console.log(`🚀 Server API pornit pe http://localhost:${PORT}`);
-});
+};

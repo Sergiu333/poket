@@ -102,11 +102,29 @@ app.get("/", (req, res) => {
 // ✅ Returnează ultimul semnal
 app.get("/signal", (req, res) => {
     if (lastSignal) {
-        res.json(lastSignal);
+        if (lastSignal.type === "OPEN") {
+            const emojis = "✅".repeat(20);
+            const msg = `
+${emojis}
+⏱️ ${lastSignal.duration}s între lumânări — TIMP ÎNTÂRZIAT
+📊 ${SYMBOL} - ${lastSignal.time}
+🕯️ Open: ${lastSignal.price - (lastSignal.direction === "BUY" ? lastSignal.bodyPercent / 100 : -lastSignal.bodyPercent / 100)}
+ | Close: ${lastSignal.price}
+📦 Corp: ??? (${lastSignal.bodyPercent.toFixed(2)}%)
+💥 Direcție: ${lastSignal.direction === "BUY" ? "BUY 🟩" : "SELL 🟥"}
+🚀 SEMNAL DE IMPULS CLAR ȘI PUTERNIC (95%)
+${emojis}
+`.trim();
+
+            res.json({ message: msg });
+        } else {
+            res.json({ message: `Tranzacție închisă la ${lastSignal.price} (${lastSignal.time})\nRezultat: ${lastSignal.result.toFixed(5)}\nDirecție: ${lastSignal.direction}` });
+        }
     } else {
         res.json({ message: "Niciun semnal generat încă." });
     }
 });
+
 
 app.listen(PORT, () => {
     console.log(`Serverul rulează pe http://localhost:${PORT}`);

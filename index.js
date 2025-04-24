@@ -1,5 +1,7 @@
+// pages/api/check.js
+
 import axios from "axios";
-import { setSignal } from "./signal";
+import { setSignal } from "@/lib/signal";
 
 const SYMBOL = "EURUSDT";
 const INTERVAL = "1m";
@@ -28,7 +30,6 @@ export default async function handler(req, res) {
     const bodyPercent = (body / totalRange) * 100;
 
     const duration = lastTimestamp ? (timestamp - lastTimestamp) / 1000 : null;
-
     lastTimestamp = timestamp;
 
     if (duration && duration > 2.5 && bodyPercent > 80) {

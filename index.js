@@ -38,6 +38,12 @@ async function getLastCandle() {
 
         const { direction, bodyPercent, body } = analyzeCandle(open, close, high, low);
 
+        // Afișează datele pentru debugging
+        console.log(`Timestamp: ${time}`);
+        console.log(`Open: ${open}, Close: ${close}, High: ${high}, Low: ${low}`);
+        console.log(`Body: ${body.toFixed(5)}, Total Range: ${(high - low).toFixed(5)}`);
+        console.log(`Direction: ${direction}, Body Percent: ${bodyPercent.toFixed(2)}%`);
+
         if (lastTimestamp !== null) {
             const duration = (timestamp - lastTimestamp) / 1000;
 
@@ -55,7 +61,7 @@ ${emojis}
                 `.trim();
 
                 lastSignal = signal;
-                console.log(signal);
+                console.log("Semnal generat:\n", signal);
             }
         }
 

@@ -41,7 +41,7 @@ async function getLastCandle() {
         if (lastTimestamp !== null) {
             const duration = (timestamp - lastTimestamp) / 1000;
 
-            if (duration > 2.5 && bodyPercent > 95) {
+            if (duration > 2.5 && bodyPercent > 30) {
                 const emojis = "✅".repeat(20);
                 const signal = `
 ${emojis}

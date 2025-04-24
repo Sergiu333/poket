@@ -106,28 +106,25 @@ app.get("/", (req, res) => {
 
 // ✅ Returnează ultimul semnal
 app.get("/signal", (req, res) => {
-    if (lastSignal) {
-        if (lastSignal.type === "OPEN") {
-            const emojis = "✅".repeat(20);
-            const msg = `
+    if (lastSignal && lastSignal.type === "OPEN") {
+        const emojis = "✅".repeat(20);
+        const msg = `
 ${emojis}
 ⏱️ ${lastSignal.duration}s între lumânări — TIMP ÎNTÂRZIAT
 📊 ${SYMBOL} - ${lastSignal.time}
-🕯️ Open: ${lastSignal.open} | Close: ${lastSignal.close}
+🕯️ Open: ${lastSignal.open.toFixed(4)} | Close: ${lastSignal.close.toFixed(4)}
 📦 Corp: ${lastSignal.body.toFixed(5)} (${lastSignal.bodyPercent.toFixed(2)}%)
 💥 Direcție: ${lastSignal.direction === "BUY" ? "BUY 🟩" : "SELL 🟥"}
 🚀 SEMNAL DE IMPULS CLAR ȘI PUTERNIC (95%)
 ${emojis}
-`.trim();
+        `.trim();
 
-            res.json({ message: msg });
-        } else {
-            res.json({ message: `Tranzacție închisă la ${lastSignal.price} (${lastSignal.time})\nRezultat: ${lastSignal.result.toFixed(5)}\nDirecție: ${lastSignal.direction}` });
-        }
+        res.json({ message: msg });
     } else {
-        res.json({ message: "Niciun semnal generat încă." });
+        res.json({ message: "Fără semnal de impuls clar." });
     }
 });
+
 
 
 

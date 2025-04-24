@@ -1,83 +1,75 @@
-const express = require("express");
-const axios = require("axios");
-const cors = require("cors");
-const app = express();
-const PORT = 3000;
-app.use(cors());
+import axios from "axios";
+
+let lastSignal = null; // Variabila pentru a stoca ultimul semnal detectat
+
 const SYMBOL = "EURUSDT";
 const INTERVAL = "1m";
 let lastTimestamp = null;
-let lastSignal = null;
 
-function analyzeCandle(open, close, high, low) {
+export default async function handler(req, res) {
+  // Setăm header-ul CORS
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Permitem accesul de la orice domeniu
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    // Răspuns pentru cereri de tip OPTIONS (pre-flight CORS)
+    return res.status(200).end();
+  }
+
+  const url = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=${INTERVAL}&limit=2`;
+
+  try {
+    const response = await axios.get(url);
+    const candles = response.data;
+
+    if (candles.length < 2) {
+      return res.status(200).json({ message: "Prea puține date." });
+    }
+
+    const last = candles[candles.length - 2];
+    const [timestamp, openStr, highStr, lowStr, closeStr] = last;
+    const open = parseFloat(openStr);
+    const close = parseFloat(closeStr);
+    const high = parseFloat(highStr);
+    const low = parseFloat(lowStr);
+    const time = new Date(timestamp).toUTCString();
+
     const body = Math.abs(close - open);
     const totalRange = high - low;
     const direction = close > open ? "BUY 🟩" : close < open ? "SELL 🟥" : "FLAT ⚪️";
     const bodyPercent = (body / totalRange) * 100;
-    return { direction, bodyPercent, body };
-}
+    const duration = lastTimestamp ? (timestamp - lastTimestamp) / 1000 : null;
 
-async function getLastCandle() {
-    const url = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=${INTERVAL}&limit=2`;
+    lastTimestamp = timestamp;
 
-    try {
-        const response = await axios.get(url);
-        const candles = response.data;
-
-        if (candles.length < 2) return;
-
-        const last = candles[candles.length - 2];
-        const [timestamp, openStr, highStr, lowStr, closeStr] = last;
-        const open = parseFloat(openStr);
-        const close = parseFloat(closeStr);
-        const high = parseFloat(highStr);
-        const low = parseFloat(lowStr);
-        const time = new Date(timestamp).toUTCString();
-
-        const { direction, bodyPercent, body } = analyzeCandle(open, close, high, low);
-
-        if (lastTimestamp !== null) {
-            const duration = (timestamp - lastTimestamp) / 1000;
-
-            if (duration > 2.5 && bodyPercent > 95) {
-                const emojis = "✅".repeat(20);
-                const signal = `
+    // Verificăm dacă semnalul îndeplinește condițiile
+    if (duration && duration > 2.5 && bodyPercent > 80) {
+      const emojis = "✅".repeat(20);
+      const signal = `
 ${emojis}
 ⏱️ ${duration}s între lumânări — TIMP ÎNTÂRZIAT
 📊 ${SYMBOL} - ${time}
 🕯️ Open: ${open} | Close: ${close}
 📦 Corp: ${body.toFixed(5)} (${bodyPercent.toFixed(2)}%)
 💥 Direcție: ${direction}
-🚀 SEMNAL DE IMPULS CLAR ȘI PUTERNIC (95%)
+🚀 SEMNAL DE IMPULS CLAR ȘI PUTERNIC (80%)
 ${emojis}
-                `.trim();
+      `.trim();
 
-                lastSignal = signal;
-                console.log(signal);
-            }
-        }
-
-        lastTimestamp = timestamp;
-
-    } catch (err) {
-        console.error("❌ Eroare API Binance:", err.message);
+      // Salvăm semnalul
+      lastSignal = signal;
+      console.log("🚀 Semnal nou:", signal);
     }
-}
 
-// Pornim verificarea la fiecare secundă
-setInterval(getLastCandle, 1000);
-getLastCandle();
-
-// Endpoint API
-app.get("/signal", (req, res) => {
+    // Dacă nu s-a găsit un semnal, trimitem răspuns că nu s-a detectat
     if (lastSignal) {
-        res.send(`<pre>${lastSignal}</pre>`);
+      res.status(200).json({ signal: lastSignal });
     } else {
-        res.send("Niciun semnal detectat încă.");
+      res.status(200).json({ message: "Nu s-a detectat niciun semnal." });
     }
-});
-
-// Pornim serverul
-app.listen(PORT, () => {
-    console.log(`🚀 Server API pornit pe http://localhost:${PORT}`);
-});
+  } catch (err) {
+    console.error("❌ Eroare API:", err.message);
+    res.status(500).json({ error: "Eroare Binance API" });
+  }
+}

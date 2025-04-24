@@ -5,6 +5,7 @@ const SYMBOL = "EURUSDT";
 const INTERVAL = "1m";
 let lastTimestamp = null;
 let lastSignal = null;
+app.use(cors());
 
 function analyzeCandle(open, close, high, low) {
     const body = Math.abs(close - open);

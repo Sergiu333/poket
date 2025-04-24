@@ -50,14 +50,19 @@ async function getLastCandle() {
                 direction
             };
 
-            lastSignal = {
-                type: "OPEN",
-                time,
-                price: close,
-                direction,
-                bodyPercent,
-                duration
-            };
+       lastSignal = {
+    type: "OPEN",
+    time,
+    open,
+    close,
+    high,
+    low,
+    body,
+    bodyPercent,
+    direction,
+    duration
+};
+
 
             console.log(`Tranzacție DESCHISĂ: ${direction} la ${close} (${time})`);
         } else if (tradeOpen) {
@@ -108,9 +113,8 @@ app.get("/signal", (req, res) => {
 ${emojis}
 ⏱️ ${lastSignal.duration}s între lumânări — TIMP ÎNTÂRZIAT
 📊 ${SYMBOL} - ${lastSignal.time}
-🕯️ Open: ${lastSignal.price - (lastSignal.direction === "BUY" ? lastSignal.bodyPercent / 100 : -lastSignal.bodyPercent / 100)}
- | Close: ${lastSignal.price}
-📦 Corp: ??? (${lastSignal.bodyPercent.toFixed(2)}%)
+🕯️ Open: ${lastSignal.open} | Close: ${lastSignal.close}
+📦 Corp: ${lastSignal.body.toFixed(5)} (${lastSignal.bodyPercent.toFixed(2)}%)
 💥 Direcție: ${lastSignal.direction === "BUY" ? "BUY 🟩" : "SELL 🟥"}
 🚀 SEMNAL DE IMPULS CLAR ȘI PUTERNIC (95%)
 ${emojis}
@@ -124,6 +128,7 @@ ${emojis}
         res.json({ message: "Niciun semnal generat încă." });
     }
 });
+
 
 
 app.listen(PORT, () => {

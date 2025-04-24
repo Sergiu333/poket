@@ -1,24 +1,18 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
-
 const app = express();
-const PORT = process.env.PORT || 3000;
-
+const PORT = 3000;
 app.use(cors());
-
 const SYMBOL = "EURUSDT";
 const INTERVAL = "1m";
-
 let lastTimestamp = null;
-let tradeOpen = false;
-let tradeInfo = null;
 let lastSignal = null;
 
 function analyzeCandle(open, close, high, low) {
     const body = Math.abs(close - open);
     const totalRange = high - low;
-    const direction = close > open ? "BUY" : close < open ? "SELL" : "FLAT";
+    const direction = close > open ? "BUY 🟩" : close < open ? "SELL 🟥" : "FLAT ⚪️";
     const bodyPercent = (body / totalRange) * 100;
     return { direction, bodyPercent, body };
 }
@@ -29,6 +23,7 @@ async function getLastCandle() {
     try {
         const response = await axios.get(url);
         const candles = response.data;
+
         if (candles.length < 2) return;
 
         const last = candles[candles.length - 2];
@@ -40,94 +35,49 @@ async function getLastCandle() {
         const time = new Date(timestamp).toUTCString();
 
         const { direction, bodyPercent, body } = analyzeCandle(open, close, high, low);
-        const duration = lastTimestamp !== null ? (timestamp - lastTimestamp) / 1000 : null;
 
-        if (!tradeOpen && duration !== null && duration > 2.5 && bodyPercent > 95) {
-            tradeOpen = true;
-            tradeInfo = {
-                entryTime: time,
-                entryPrice: close,
-                direction
-            };
+        if (lastTimestamp !== null) {
+            const duration = (timestamp - lastTimestamp) / 1000;
 
-       lastSignal = {
-    type: "OPEN",
-    time,
-    open,
-    close,
-    high,
-    low,
-    body,
-    bodyPercent,
-    direction,
-    duration
-};
+            if (duration > 2.5 && bodyPercent > 95) {
+                const emojis = "✅".repeat(20);
+                const signal = `
+${emojis}
+⏱️ ${duration}s între lumânări — TIMP ÎNTÂRZIAT
+📊 ${SYMBOL} - ${time}
+🕯️ Open: ${open} | Close: ${close}
+📦 Corp: ${body.toFixed(5)} (${bodyPercent.toFixed(2)}%)
+💥 Direcție: ${direction}
+🚀 SEMNAL DE IMPULS CLAR ȘI PUTERNIC (95%)
+${emojis}
+                `.trim();
 
-
-            console.log(`Tranzacție DESCHISĂ: ${direction} la ${close} (${time})`);
-        } else if (tradeOpen) {
-            tradeOpen = false;
-
-            const exitTime = time;
-            const exitPrice = close;
-            const result = tradeInfo.direction === "BUY"
-                ? (exitPrice - tradeInfo.entryPrice)
-                : (tradeInfo.entryPrice - exitPrice);
-
-            lastSignal = {
-                type: "CLOSE",
-                time: exitTime,
-                price: exitPrice,
-                result,
-                direction: tradeInfo.direction
-            };
-
-            console.log(`Tranzacție ÎNCHISĂ la ${exitPrice} (${exitTime})`);
-            console.log(`Direcție: ${tradeInfo.direction}`);
-            console.log(`Rezultat: ${result.toFixed(5)}\n`);
-
-            tradeInfo = null;
+                lastSignal = signal;
+                console.log(signal);
+            }
         }
 
         lastTimestamp = timestamp;
 
     } catch (err) {
-        console.error("Eroare API Binance:", err.message);
+        console.error("❌ Eroare API Binance:", err.message);
     }
 }
 
+// Pornim verificarea la fiecare secundă
 setInterval(getLastCandle, 1000);
 getLastCandle();
 
-// ✅ Health check endpoint
-app.get("/", (req, res) => {
-    res.json({ status: "API Binance Signal Bot Running" });
-});
-
-// ✅ Returnează ultimul semnal
+// Endpoint API
 app.get("/signal", (req, res) => {
-    if (lastSignal && lastSignal.type === "OPEN") {
-        const emojis = "✅".repeat(20);
-        const msg = `
-${emojis}
-⏱️ ${lastSignal.duration}s între lumânări — TIMP ÎNTÂRZIAT
-📊 ${SYMBOL} - ${lastSignal.time}
-🕯️ Open: ${lastSignal.open.toFixed(4)} | Close: ${lastSignal.close.toFixed(4)}
-📦 Corp: ${lastSignal.body.toFixed(5)} (${lastSignal.bodyPercent.toFixed(2)}%)
-💥 Direcție: ${lastSignal.direction === "BUY" ? "BUY 🟩" : "SELL 🟥"}
-🚀 SEMNAL DE IMPULS CLAR ȘI PUTERNIC (95%)
-${emojis}
-        `.trim();
-
-        res.json({ message: msg });
+    if (lastSignal) {
+        res.send(`<pre>${lastSignal}</pre>`);
     } else {
-        res.json({ message: "Fără semnal de impuls clar." });
+        res.send("Niciun semnal detectat încă.");
     }
 });
 
-
-
-
+// Pornim serverul
 app.listen(PORT, () => {
-    console.log(`Serverul rulează pe http://localhost:${PORT}`);
+    console.log(`🚀 Server API pornit pe http://localhost:${PORT}`);
 });
